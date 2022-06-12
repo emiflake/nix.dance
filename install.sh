@@ -83,7 +83,10 @@ else
     create-envrc
 fi
 
+log-info "Decompressing the template"
+
 wget "$TAR"
-tar xzf "$(basename $TAR)"
+tar vxzf "$(basename $TAR)"
+rm "$TAR"
 
 }
