@@ -75,4 +75,4 @@ main = do
   templates <- traverse templateAt templateDirectories
   let root = [ t { destination = Just outDirectory , shouldExportTar = False } | t <- maybeToList (find (\temp -> temp.name == "haskell") templates) ]
   for_ (templates <> root) (bundleTemplate outDirectory)
-  writeFile "CNAME" "nix.dance"
+  writeFile (outDirectory </> "CNAME") "nix.dance"
