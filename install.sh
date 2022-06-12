@@ -51,7 +51,7 @@ install-nix() {
                 ;;
             *) continue ;;
         esac
-    done
+    done </dev/tty
 }
 
 create-envrc() {
