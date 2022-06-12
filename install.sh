@@ -5,14 +5,14 @@
 ######### User interaction
 
 prompt() {
-    read -r "$@" </dev/tty
+    read -r "$*" </dev/tty
 }
 
 yes-no-prompt() {
     local response
     while :; do
         echo -en "[\e[33m ??? \e[0m] "
-        read -r -p "$@ [Y/n] " </dev/tty response
+        read -r -p "$* [Y/n] " </dev/tty response
         if [[ "${response,,}" =~ y|yes ]]; then
             return 0
         elif [[ "${response,,}" =~ n|no ]]; then
@@ -97,7 +97,7 @@ fi
 
 log-info "Staging your project in git"
 
-git add --verbose "$(tar -tf "$tar_file")"
+tar -tf "$tar_file" | xargs git add --verbose
 
 rm -v "$tar_file"
 
