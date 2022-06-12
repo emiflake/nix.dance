@@ -53,11 +53,11 @@ createBashScript template =
 
 bundleTemplate :: FilePath -> Template -> IO ()
 bundleTemplate outDirectory template = do
-  printf "[info]: ---- [%s]\n" template.name templateOut
+  let templateOut = fromMaybe (outDirectory </> template.name) template.destination
+  printf "[info]: [%s] Bundle will be placed in %s\n" template.name templateOut
   subFiles <- listDirectory template.path
   tar <- Tar.pack template.path subFiles
 
-  let templateOut = fromMaybe (outDirectory </> template.name) template.destination
   printf "[info]: [%s] Creating directory %s\n" template.name templateOut
   createDirectoryIfMissing True templateOut
 
