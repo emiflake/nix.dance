@@ -53,6 +53,7 @@ createBashScript template =
 
 bundleTemplate :: FilePath -> Template -> IO ()
 bundleTemplate outDirectory template = do
+  printf "[info]: ---- [%s]\n" template.name templateOut
   subFiles <- listDirectory template.path
   tar <- Tar.pack template.path subFiles
 
@@ -63,7 +64,11 @@ bundleTemplate outDirectory template = do
   printf "[info]: [%s] Creating file %s\n" template.name "index.html"
   writeFile (templateOut </> "index.html") (createBashScript template)
   printf "[info]: [%s] Creating file %s\n" template.name (template.name <> ".tar.gz")
-  when (template.shouldExportTar) $ BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
+  if template.shouldExportTar then do
+    printf "[info]: [%s] Creating tar file %s\n" template.name (template.name <> ".tar.gz")
+    BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
+  else
+    printf "[info]: [%s] Not creating tar file because of flag\n" template.name
 
 main :: IO ()
 main = do
