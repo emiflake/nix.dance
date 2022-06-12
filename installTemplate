@@ -101,7 +101,7 @@ main() {
     log-info "Downloading template"
     TARFile="./$(basename $TAR)"
     echo $TARFile
-    curl -O$TAR
+    curl -O $TAR
     
     log-info "Decompressing the template"
     tar vxzf $TARFile || die "Something gone wrong while decompressing the template."
