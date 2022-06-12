@@ -53,14 +53,16 @@ createBashScript template =
 
 bundleTemplate :: FilePath -> Template -> IO ()
 bundleTemplate outDirectory template = do
-  print template
   subFiles <- listDirectory template.path
   tar <- Tar.pack template.path subFiles
 
   let templateOut = fromMaybe (outDirectory </> template.name) template.destination
+  printf "[info]: [%s] Creating directory %s\n" template.name templateOut
   createDirectoryIfMissing True templateOut
 
+  printf "[info]: [%s] Creating file %s\n" template.name "index.html"
   writeFile (templateOut </> "index.html") (createBashScript template)
+  printf "[info]: [%s] Creating file %s\n" template.name (template.name <> ".tar.gz")
   when (template.shouldExportTar) $ BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
 
 main :: IO ()
