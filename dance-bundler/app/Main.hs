@@ -57,9 +57,9 @@ bundleTemplate outDirectory fp = do
 main :: IO ()
 main = do
   let rootDirectory :: FilePath
-      rootDirectory = "../"
+      rootDirectory = "./"
       outDirectory :: FilePath
-      outDirectory = "out"
+      outDirectory = "bundles"
 
   createDirectoryIfMissing True outDirectory
   templates <- fmap ((rootDirectory </>) . ("templates" </>)) <$> listDirectory (rootDirectory </> "templates")
