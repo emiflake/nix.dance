@@ -65,8 +65,11 @@ bundleTemplate outDirectory template = do
   writeFile (templateOut </> "index.html") (createBashScript template)
   printf "[info]: [%s] Creating file %s\n" template.name (template.name <> ".tar.gz")
   if template.shouldExportTar then do
-    printf "[info]: [%s] Creating tar file %s\n" template.name (template.name <> ".tar.gz")
-    BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
+    printf "[info]: [%s] Compressing tar file %s\n" template.name (template.name <> ".tar.gz")
+    let compressed = GZip.compress $ Tar.write tar
+    printf "[info]: [%s] Compressed %d bytes\n" template.name (BS.length compressed)
+    printf "[info]: [%s] Writing tar file %s\n" template.name (template.name <> ".tar.gz")
+    BS.writeFile (templateOut </> template.name <> ".tar.gz") compressed
   else
     printf "[info]: [%s] Not creating tar file because of flag\n" template.name
 
