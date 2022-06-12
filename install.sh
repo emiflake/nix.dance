@@ -87,7 +87,6 @@ log-info "Decompressing the template"
 
 wget --quiet "$TAR"
 tar vxzf "$(basename $TAR)"
-rm "$TAR"
 
 if [[ ! -d .git ]]; then
     log-info "Creating a git repo"
@@ -98,6 +97,7 @@ log-info "Staging your project in git"
 
 git add --verbose "$(tar -tf "$TAR")"
 
+rm "$TAR"
 
 log-info "All done :)"
 
