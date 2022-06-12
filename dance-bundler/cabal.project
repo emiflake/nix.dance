@@ -1,4 +1,0 @@
-packages: ./.
-
-benchmarks: true
-tests: true

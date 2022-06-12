@@ -1,5 +1,7 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -p "haskell.packages.ghc922.ghcWithPackages (pkgs: with pkgs; [directory tar zlib unix filepath])" -i runhaskell
+#! nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs/archive/914ef51ffa88d9b386c71bdc88bffc5273c08ada.tar.gz
+#! nix-shell -p "haskell.packages.ghc923.ghcWithPackages (pkgs: with pkgs; [directory tar zlib unix filepath])" 
+#! nix-shell -i runhaskell
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
@@ -73,3 +75,4 @@ main = do
   templates <- traverse templateAt templateDirectories
   let root = [ t { destination = Just outDirectory , shouldExportTar = False } | t <- maybeToList (find (\temp -> temp.name == "haskell") templates) ]
   for_ (templates <> root) (bundleTemplate outDirectory)
+  writeFile "CNAME" "nix.dance"
