@@ -1,10 +1,3 @@
-#!/bin/bash
-
-deps=(curl git tar)
-
-source <(curl -s https://github.com/SeungheonOh/nix.dance/raw/gh-page/choices)
-
-######### User interaction
 
 prompt() {
     read -r "$@" </dev/tty
@@ -88,6 +81,7 @@ check-envrc() {
 }
 
 check-deps() {
+    deps=(curl git tar)
     for d in "${deps[@]}" 
     do
 	which $d > /dev/null || {
@@ -107,7 +101,7 @@ main() {
     log-info "Downloading template"
     TARFile="./$(basename $TAR)"
     echo $TARFile
-    curl -O $TAR
+    curl -O$TAR
     
     log-info "Decompressing the template"
     tar vxzf $TARFile || die "Something gone wrong while decompressing the template."
@@ -121,10 +115,9 @@ main() {
     
     log-info "Staging your project in git"
     git add .
-g
+
     log-info "All done :)"
 }
 
 choose
 main
-

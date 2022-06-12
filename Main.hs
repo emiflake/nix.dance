@@ -36,7 +36,8 @@ instance FromJSON Template where
 
 choice :: [Template] -> String
 choice ts =
-  [r|choose() { PS3='Choose your template: '|] ++
+  [r|#! /usr/bin/env bash
+choose() { PS3='Choose your template: '|] ++
   "\noptions=(" ++ opts ++ " \"Quit\")\n" ++
   [r|select opt in "${options[@]}"; do case $opt in|] ++ "\n" ++
   mconcat (opt <$> ts) ++
@@ -47,7 +48,7 @@ choice ts =
 
 templateURL :: Template -> String
 templateURL t =
-  "https://github.com/SeungheonOh/nix.dance/raw/gh-page/" ++ t.name ++ ".tar.gz"
+  "https://raw.githubusercontent.com/SeungheonOh/nix.dance/gh-pages/" ++ t.name ++ ".tar.gz"
 
 tarPath :: Template -> IO ()
 tarPath template = do
@@ -69,4 +70,5 @@ main = do
   mapM_ tarPath templates
 
   putStrLn "Generating choices"
-  BS.writeFile "./bundles/choices" $ C.pack (choice templates)
+  installTemplate <- BS.readFile "./installTemplate"
+  BS.writeFile "./bundles/install.sh" $ C.pack (choice templates) <> installTemplate
