@@ -1,18 +1,10 @@
 on:
+  workflow_dispatch:
   push:
-    paths:
-      - ".github/workflows/integrate.yaml"
-      - "**.hs"
-      - "**.nix"
     branches:
       - main
-      - staging
-  pull_request:
-    paths:
-      - ".github/workflows/integrate.yaml"
-      - "**.hs"
-      - "**.nix"
-  haddock:
+jobs:
+  pages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.4.0
@@ -31,7 +23,7 @@ on:
       - run: ./result/bin/dance-bundler
         name: Run bundler
 
-      # This publishes the haddock result to the branch 'gh-pages',
+      # This publishes the bundled templates to the branch 'gh-pages',
       # which is set to automatically deploy to https://nix.dance.
       - name: Publish Documentation
         uses: peaceiris/actions-gh-pages@v3
