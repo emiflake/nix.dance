@@ -1,0 +1,10 @@
+[
+    { "name": "haskell",
+      "path": "./templates/haskell",
+      "output": "./bundles"
+    }, 
+    { "name": "rust",
+      "path": "./templates/haskell",
+      "output": "./bundles"
+    }
+]

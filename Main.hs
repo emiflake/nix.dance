@@ -1,85 +1,73 @@
 #! /usr/bin/env nix-shell
 #! nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs/archive/914ef51ffa88d9b386c71bdc88bffc5273c08ada.tar.gz
-#! nix-shell -p "haskell.packages.ghc923.ghcWithPackages (pkgs: with pkgs; [directory tar zlib unix filepath])"
-#! nix-shell -i runhaskell
+#! nix-shell -p "haskell.packages.ghc923.ghcWithPackages (pkgs: with pkgs; [directory zlib unix filepath aeson process tar raw-strings-qq])" -j8
+#! nix-shell -i "runhaskell"
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+
 module Main (main) where
 
-import Codec.Archive.Tar qualified as Tar
-import System.Directory (listDirectory, createDirectoryIfMissing)
-import System.FilePath ((</>), takeBaseName)
-import System.Posix.Files (isDirectory, getFileStatus)
-import qualified Codec.Archive.Tar as Tar
-import Data.Foldable (for_, find)
-import qualified Data.ByteString.Lazy as BS
-import qualified Codec.Compression.GZip as GZip
-import Text.Printf (printf)
-import Data.Maybe (fromMaybe, maybeToList)
-import Control.Monad (when)
+import Control.Monad ()
+import Data.Aeson ( decode, (.:), withObject, FromJSON(parseJSON) )
+import Data.List ( intercalate )
+import System.Directory ( createDirectoryIfMissing, listDirectory )
+import System.FilePath ( (</>) )
+import Text.RawString.QQ ( r )
+import Data.ByteString.Lazy qualified as BS ( readFile, writeFile )
+import qualified Data.ByteString.Lazy.Char8 as C ( pack )
+import qualified Codec.Compression.GZip as GZip ( compress )
+import Codec.Archive.Tar qualified as Tar ( pack, write )
 
-data Template
-  = Template
+data Template =
+  Template
   { name :: String
   , path :: FilePath
-  , destination :: Maybe FilePath
-  , shouldExportTar :: Bool
-  }
-  deriving stock (Show)
+  , output :: FilePath
+  } deriving stock (Show)
 
-templateAt :: FilePath -> IO Template
-templateAt fp = pure $ Template { name = takeBaseName fp , path = fp, destination = Nothing, shouldExportTar = True }
+instance FromJSON Template where
+    parseJSON = withObject "Person" $ \v -> Template
+        <$> v .: "name"
+        <*> v .: "path"
+        <*> v .: "output"
 
--- | The branch that the tars will live on.
-githubPagesBranch :: String
-githubPagesBranch = "gh-pages"
+choice :: [Template] -> String
+choice ts =
+  [r|choose() { PS3='Choose your template: '|] ++
+  "\noptions=(" ++ opts ++ " \"Quit\")\n" ++
+  [r|select opt in "${options[@]}"; do case $opt in|] ++ "\n" ++
+  mconcat (opt <$> ts) ++
+  [r|"Quit") break ;; *) echo "invalid option $REPLY";; esac; done;}|]
+    where
+      opts = intercalate " " $ show . name <$> ts
+      opt t = show (name t) ++ ") TAR=\"" ++ templateURL t ++ "\"; break ;;\n"
 
-templateFilePath :: Template -> FilePath
-templateFilePath template =
-  printf "https://raw.githubusercontent.com/emiflake/nix.dance/%s/%s/"
-    githubPagesBranch
-    template.name
+templateURL :: Template -> String
+templateURL t = name t -- IDK what to put
 
-createBashScript :: Template -> String
-createBashScript template =
-  unlines
-  [ "#!/bin/sh"
-  , printf "export TAR=%s" (templateFilePath template </> (template.name <> ".tar.gz"))
-  , "curl --silent -L https://raw.githubusercontent.com/emiflake/nix.dance/main/install.sh | bash"
-  ]
+tarPath :: Template -> IO ()
+tarPath template = do
+  putStrLn $ "Started : " <> template.name
+  putStrLn "* Setup ouput directory"
+  createDirectoryIfMissing True template.output
 
-bundleTemplate :: FilePath -> Template -> IO ()
-bundleTemplate outDirectory template = do
-  printf "[info]: ---- [%s]\n" template.name templateOut
-  subFiles <- listDirectory template.path
-  tar <- Tar.pack template.path subFiles
-
-  let templateOut = fromMaybe (outDirectory </> template.name) template.destination
-  printf "[info]: [%s] Creating directory %s\n" template.name templateOut
-  createDirectoryIfMissing True templateOut
-
-  printf "[info]: [%s] Creating file %s\n" template.name "index.html"
-  writeFile (templateOut </> "index.html") (createBashScript template)
-  printf "[info]: [%s] Creating file %s\n" template.name (template.name <> ".tar.gz")
-  if template.shouldExportTar then do
-    printf "[info]: [%s] Creating tar file %s\n" template.name (template.name <> ".tar.gz")
-    BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
-  else
-    printf "[info]: [%s] Not creating tar file because of flag\n" template.name
+  putStrLn "* Tar-ing up"
+  tar <- listDirectory template.path >>= Tar.pack template.path
+  BS.writeFile (template.output </> template.name <> ".tar.gz")
+    . GZip.compress $ Tar.write tar
+  putStrLn "Done\n"
 
 main :: IO ()
 main = do
-  let rootDirectory :: FilePath
-      rootDirectory = "./"
-      outDirectory :: FilePath
-      outDirectory = "bundles"
+  Just (templates :: [Template]) <-
+    decode <$> BS.readFile "./templates/export.json"
+    
+  mapM_ tarPath templates
 
-  createDirectoryIfMissing True outDirectory
-  templateDirectories <- fmap ((rootDirectory </>) . ("templates" </>)) <$> listDirectory (rootDirectory </> "templates")
-  templates <- traverse templateAt templateDirectories
-  let root = [ t { destination = Just outDirectory , shouldExportTar = False } | t <- maybeToList (find (\temp -> temp.name == "haskell") templates) ]
-  for_ (templates <> root) (bundleTemplate outDirectory)
-  writeFile (outDirectory </> "CNAME") "nix.dance"
+  putStrLn "Generating choices"
+  BS.writeFile "./choices" $ C.pack (choice templates)

@@ -1,6 +1,8 @@
 #!/bin/bash
 
-{
+deps=(curl git tar)
+
+source choices
 
 ######### User interaction
 
@@ -11,11 +13,11 @@ prompt() {
 yes-no-prompt() {
     local response
     while :; do
-        echo -en "[\e[33m ??? \e[0m] "
+        echo -en "[\033[33m ??? \033[0m] "
         read -r -p "$@ [Y/n] " </dev/tty response
-        if [[ "${response,,}" =~ y|yes ]]; then
+        if [[ "${response}" =~ y|yes ]]; then
             return 0
-        elif [[ "${response,,}" =~ n|no ]]; then
+        elif [[ "${response}" =~ n|no ]]; then
             return 1
         fi
         echo "I didn't quite get that"
@@ -23,11 +25,11 @@ yes-no-prompt() {
 }
 
 log-info() {
-    echo -e "[\e[32mINFO\e[0m ] $*"
+    echo -e "[\033[32mINFO\033[0m] $*"
 }
 
 log-error() {
-    echo -e "[\e[31mERROR\e[0m] $*"
+    echo -e "[\033[31mERROR\033[0m] $*"
 }
 
 die() {
@@ -35,7 +37,7 @@ die() {
     exit 1
 }
 
-######### Config gen
+######### Checks
 
 install-nix() {
     log-info "installing nix..."
@@ -54,6 +56,18 @@ install-nix() {
     done
 }
 
+check-nix() {
+    if ! hash nix 2>/dev/null; then
+	if yes-no-prompt "Nix not found 😱. Do you want to install nix?"; then
+            install-nix || die "Canceled, exiting..."
+	else
+            die "nix not installed. Exiting..."
+	fi
+
+	exit 0
+    fi    
+}    
+
 create-envrc() {
     log-info CREATING .envrc
 
@@ -65,40 +79,52 @@ use flake
 EOF
 }
 
-[[ "$TAR" ]] || die "TAR variable not defined, I don't know the template you want"
-
-if ! hash nix 2>/dev/null; then
-    if yes-no-prompt "Nix not found 😱. Do you want to install nix?"; then
-        install-nix || die "Canceled, exiting..."
+check-envrc() {
+    if [ -f .envrc ]; then
+	yes-no-prompt ".envrc file found, replace it?" && create-envrc
     else
-        die "nix not installed. Exiting..."
+	create-envrc
     fi
-
-    exit 0
-fi
-
-if [ -f .envrc ]; then
-    yes-no-prompt ".envrc file found, replace it?" && create-envrc
-else
-    create-envrc
-fi
-
-log-info "Decompressing the template"
-
-wget --quiet "$TAR"
-tar vxzf "$(basename $TAR)"
-
-if [[ ! -d .git ]]; then
-    log-info "Creating a git repo"
-    git init .
-fi
-
-log-info "Staging your project in git"
-
-git add --verbose "$(tar -tf "$TAR")"
-
-rm "$TAR"
-
-log-info "All done :)"
-
 }
+
+check-deps() {
+    for d in "${deps[@]}" 
+    do
+	which $d > /dev/null || {
+	    die "$d is not installed or listed in PATH variable. Please install $d and try again."
+	}
+    done
+}    
+
+main() {
+    [[ "$TAR" ]] || die "TAR variable not defined, I don't know the template you want"
+
+    # check nix and its env setup
+    check-deps
+    check-nix
+    check-envrc
+
+    log-info "Downloading template"
+    TARFile="./$(basename $TAR)"
+    echo $TARFile
+    curl -O $TAR
+    
+    log-info "Decompressing the template"
+    tar vxzf $TARFile || die "Something gone wrong while decompressing the template."
+    rm $TARFile
+
+    # initialize git repo
+    if [[ ! -d .git ]]; then
+	log-info "Creating a git repo"
+	git init .
+    fi
+    
+    log-info "Staging your project in git"
+    git add .
+g
+    log-info "All done :)"
+}
+
+choose
+main
+
