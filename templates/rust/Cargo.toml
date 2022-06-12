@@ -1,0 +1,24 @@
+[package]
+name = "rust_scaffold"
+version = "0.1.0"
+authors = ["Tilde Rose <t1lde@protonmail.com>"]
+edition = "2021"
+
+[dependencies]
+
+
+[dev-dependencies]
+
+
+[lib]
+name = "rust_scaffold"
+path = "rust-scaffold/lib/lib.rs"
+
+[[bin]]
+name = "rust_scaffold"
+path = "rust-scaffold/cli/main.rs"
+
+[[test]]
+name = "rust_scaffold"
+path = "rust-scaffold/test/test.rs"
+
