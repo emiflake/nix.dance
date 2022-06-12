@@ -8,20 +8,24 @@ import System.Directory (listDirectory, createDirectoryIfMissing)
 import System.FilePath ((</>), takeBaseName)
 import System.Posix.Files (isDirectory, getFileStatus)
 import qualified Codec.Archive.Tar as Tar
-import Data.Foldable (for_)
+import Data.Foldable (for_, find)
 import qualified Data.ByteString.Lazy as BS
 import qualified Codec.Compression.GZip as GZip
 import Text.Printf (printf)
+import Data.Maybe (fromMaybe, maybeToList)
+import Control.Monad (when)
 
 data Template
   = Template
   { name :: String
   , path :: FilePath
+  , destination :: Maybe FilePath
+  , shouldExportTar :: Bool
   }
   deriving stock (Show)
 
 templateAt :: FilePath -> IO Template
-templateAt fp = pure $ Template { name = takeBaseName fp , path = fp }
+templateAt fp = pure $ Template { name = takeBaseName fp , path = fp, destination = Nothing, shouldExportTar = True }
 
 -- | The branch that the tars will live on.
 githubPagesBranch :: String
@@ -29,7 +33,7 @@ githubPagesBranch = "gh-pages"
 
 templateFilePath :: Template -> FilePath
 templateFilePath template = 
-  printf "https://raw.githubusercontent.com/emiflake/nix.dance/%s/bundles/%s/" 
+  printf "https://raw.githubusercontent.com/emiflake/nix.dance/%s/%s/" 
     githubPagesBranch 
     template.name 
 
@@ -41,18 +45,17 @@ createBashScript template =
   , "curl --silent -L https://raw.githubusercontent.com/emiflake/nix.dance/main/install.sh | bash"
   ]
 
-bundleTemplate :: FilePath -> FilePath -> IO ()
-bundleTemplate outDirectory fp = do
-  template <- templateAt fp
+bundleTemplate :: FilePath -> Template -> IO ()
+bundleTemplate outDirectory template = do
   print template
   subFiles <- listDirectory template.path
   tar <- Tar.pack template.path subFiles
 
-  let templateOut = outDirectory </> template.name
+  let templateOut = fromMaybe (outDirectory </> template.name) template.destination
   createDirectoryIfMissing True templateOut
  
   writeFile (templateOut </> "index.html") (createBashScript template)
-  BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
+  when (template.shouldExportTar) $ BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
 
 main :: IO ()
 main = do
@@ -62,5 +65,7 @@ main = do
       outDirectory = "bundles"
 
   createDirectoryIfMissing True outDirectory
-  templates <- fmap ((rootDirectory </>) . ("templates" </>)) <$> listDirectory (rootDirectory </> "templates")
-  for_ templates (bundleTemplate outDirectory)
+  templateDirectories <- fmap ((rootDirectory </>) . ("templates" </>)) <$> listDirectory (rootDirectory </> "templates")
+  templates <- traverse templateAt templateDirectories
+  let root = [ t { destination = Just outDirectory , shouldExportTar = False } | t <- maybeToList (find (\temp -> temp.name == "haskell") templates) ]
+  for_ (templates <> root) (bundleTemplate outDirectory)
