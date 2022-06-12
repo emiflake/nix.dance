@@ -1,5 +1,7 @@
 #!/bin/bash
 
+{
+
 ######### User interaction
 
 prompt() {
@@ -26,6 +28,11 @@ log-info() {
 
 log-error() {
     echo -e "[\e[31mERROR\e[0m] $*"
+}
+
+die() {
+    log-error "$@"
+    exit 1
 }
 
 ######### Config gen
@@ -58,15 +65,13 @@ use flake
 EOF
 }
 
+[[ "$TAR" ]] || die "TAR variable not defined, I don't know the template you want"
+
 if ! hash nix 2>/dev/null; then
     if yes-no-prompt "Nix not found 😱. Do you want to install nix?"; then
-        install-nix || {
-            log-error "Canceled, exiting..."
-            exit 1
-        }
+        install-nix || die "Canceled, exiting..."
     else
-        log-error "nix not installed. Exiting..."
-        exit 1
+        die "nix not installed. Exiting..."
     fi
 
     exit 0
@@ -78,3 +83,7 @@ else
     create-envrc
 fi
 
+wget "$TAR"
+tar xzf "$(basename $TAR)"
+
+}
