@@ -1,6 +1,6 @@
 #! /usr/bin/env nix-shell
 #! nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs/archive/914ef51ffa88d9b386c71bdc88bffc5273c08ada.tar.gz
-#! nix-shell -p "haskell.packages.ghc923.ghcWithPackages (pkgs: with pkgs; [directory tar zlib unix filepath])" 
+#! nix-shell -p "haskell.packages.ghc923.ghcWithPackages (pkgs: with pkgs; [directory tar zlib unix filepath])"
 #! nix-shell -i runhaskell
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
@@ -38,10 +38,10 @@ githubPagesBranch :: String
 githubPagesBranch = "gh-pages"
 
 templateFilePath :: Template -> FilePath
-templateFilePath template = 
-  printf "https://raw.githubusercontent.com/emiflake/nix.dance/%s/%s/" 
-    githubPagesBranch 
-    template.name 
+templateFilePath template =
+  printf "https://raw.githubusercontent.com/emiflake/nix.dance/%s/%s/"
+    githubPagesBranch
+    template.name
 
 createBashScript :: Template -> String
 createBashScript template =
@@ -59,7 +59,7 @@ bundleTemplate outDirectory template = do
 
   let templateOut = fromMaybe (outDirectory </> template.name) template.destination
   createDirectoryIfMissing True templateOut
- 
+
   writeFile (templateOut </> "index.html") (createBashScript template)
   when (template.shouldExportTar) $ BS.writeFile (templateOut </> template.name <> ".tar.gz") . GZip.compress $ Tar.write tar
 
