@@ -27,14 +27,12 @@ data Template =
   Template
   { name :: String
   , path :: FilePath
-  , output :: FilePath
   } deriving stock (Show)
 
 instance FromJSON Template where
     parseJSON = withObject "Person" $ \v -> Template
         <$> v .: "name"
         <*> v .: "path"
-        <*> v .: "output"
 
 choice :: [Template] -> String
 choice ts =
@@ -48,17 +46,18 @@ choice ts =
       opt t = show (name t) ++ ") TAR=\"" ++ templateURL t ++ "\"; break ;;\n"
 
 templateURL :: Template -> String
-templateURL t = name t -- IDK what to put
+templateURL t =
+  "https://github.com/SeungheonOh/nix.dance/raw/gh-page/" ++ t.name ++ ".tar.gz"
 
 tarPath :: Template -> IO ()
 tarPath template = do
   putStrLn $ "Started : " <> template.name
   putStrLn "* Setup ouput directory"
-  createDirectoryIfMissing True template.output
+  createDirectoryIfMissing True "./bundles"
 
   putStrLn "* Tar-ing up"
   tar <- listDirectory template.path >>= Tar.pack template.path
-  BS.writeFile (template.output </> template.name <> ".tar.gz")
+  BS.writeFile ("./bundles" </> template.name <> ".tar.gz")
     . GZip.compress $ Tar.write tar
   putStrLn "Done\n"
 
@@ -70,4 +69,4 @@ main = do
   mapM_ tarPath templates
 
   putStrLn "Generating choices"
-  BS.writeFile "./choices" $ C.pack (choice templates)
+  BS.writeFile "./bundles/choices" $ C.pack (choice templates)

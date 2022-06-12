@@ -2,7 +2,7 @@
 
 deps=(curl git tar)
 
-source choices
+source <(curl -s https://github.com/SeungheonOh/nix.dance/raw/gh-page/choices)
 
 ######### User interaction
 
