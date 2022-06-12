@@ -4,7 +4,7 @@
       "output": "./bundles"
     }, 
     { "name": "rust",
-      "path": "./templates/haskell",
+      "path": "./templates/rust",
       "output": "./bundles"
     }
 ]
