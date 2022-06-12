@@ -1,10 +1,8 @@
 [
     { "name": "haskell",
-      "path": "./templates/haskell",
-      "output": "./bundles"
-    }, 
+      "path": "./templates/haskell"
+    },
     { "name": "rust",
-      "path": "./templates/rust",
-      "output": "./bundles"
+      "path": "./templates/rust"
     }
 ]

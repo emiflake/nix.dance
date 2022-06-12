@@ -12,7 +12,6 @@
 
 module Main (main) where
 
-import Control.Monad ()
 import Data.Aeson ( decode, (.:), withObject, FromJSON(parseJSON) )
 import Data.List ( intercalate )
 import System.Directory ( createDirectoryIfMissing, listDirectory )
@@ -30,7 +29,7 @@ data Template =
   } deriving stock (Show)
 
 instance FromJSON Template where
-    parseJSON = withObject "Person" $ \v -> Template
+    parseJSON = withObject "Template" $ \v -> Template
         <$> v .: "name"
         <*> v .: "path"
 
@@ -58,8 +57,8 @@ tarPath template = do
 
   putStrLn "* Tar-ing up"
   tar <- listDirectory template.path >>= Tar.pack template.path
-  BS.writeFile ("./bundles" </> template.name <> ".tar.gz")
-    . GZip.compress $ Tar.write tar
+  let compressed = GZip.compress $ Tar.write tar
+  BS.writeFile ("./bundles" </> (template.name <> ".tar.gz")) compressed
   putStrLn "Done\n"
 
 main :: IO ()
